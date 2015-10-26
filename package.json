@@ -1,0 +1,26 @@
+{
+  "name": "download-manager",
+  "version": "0.0.0",
+  "description": "Download files and tarballs and process them later",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piranna/download-manager.git"
+  },
+  "author": "Jesús Leganés Combarro 'piranna' <piranna@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/piranna/download-manager/issues"
+  },
+  "homepage": "https://github.com/piranna/download-manager#readme",
+  "dependencies": {
+    "async": "^1.5.0",
+    "diff": "NodeOS/jsdiff",
+    "download": "^4.4.1",
+    "download-status": "^2.2.1",
+    "got": "^5.0.0"
+  }
+}
