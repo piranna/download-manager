@@ -1,4 +1,5 @@
 var exists = require('fs').exists
+var join   = require('path').join
 
 var async    = require('async')
 var Download = require('download')
@@ -35,7 +36,7 @@ function notUndefinedAction(item)
 
 function manager(downloads, options, callback)
 {
-  if(options instanceof function)
+  if(options instanceof Function)
   {
     callback = options
     options = {}
@@ -52,7 +53,7 @@ function manager(downloads, options, callback)
 
   async.reject(downloads, function(item, callback)
   {
-    fs.exists(join(deps, item.name), callback)
+    exists(join(deps, item.name), callback)
   },
   function(downloads)
   {
@@ -77,4 +78,4 @@ function manager(downloads, options, callback)
 }
 
 
-modules.exports = manager
+module.exports = manager
