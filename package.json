@@ -1,6 +1,6 @@
 {
   "name": "download-manager",
-  "version": "0.0.4",
+  "version": "0.0.8",
   "description": "Download files and tarballs and process them later",
   "main": "index.js",
   "scripts": {
