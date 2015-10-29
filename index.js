@@ -1,10 +1,11 @@
 var fs   = require('fs')
 var join = require('path').join
 
-var async    = require('async')
-var Download = require('download')
-var got      = require('got')
-var progress = require('download-status')
+var async     = require('async')
+var Download  = require('download')
+var got       = require('got')
+var progress  = require('download-status')
+var stripDirs = require('strip-dirs')
 
 var applyPatches = require('diff').applyPatches
 
@@ -57,19 +58,22 @@ function manager(downloads, options, callback)
     }
 
 
-    var name = item.name
-
     return function(callback)
     {
       got(item.patch, function(error, patch)
       {
         if(error) return callback(error)
 
+        var name  = item.name
+        var path  = item.path  || ''
+        var strip = item.strip || 0
+
         applyPatches(patch,
         {
           loadFile: function(patch, callback)
           {
-            fs.readFile(join(deps, name, patch.index), 'utf8', callback)
+            var filename = stripDirs(patch.oldFileName, strip)
+            fs.readFile(join(deps, name, path, filename), 'utf8', callback)
           },
 
           patched: function(patch, content)
@@ -77,7 +81,8 @@ function manager(downloads, options, callback)
             if(content === false)
               return console.error('Context sanity check failed:',patch)
 
-            fs.writeFile(join(deps, name, patch.index), content)
+            var filename = stripDirs(patch.newFileName, strip)
+            fs.writeFile(join(deps, name, path, filename), content)
           },
 
           complete: function(error)
