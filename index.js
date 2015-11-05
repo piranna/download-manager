@@ -2,6 +2,7 @@ var fs   = require('fs')
 var join = require('path').join
 
 var async     = require('async')
+var checksum  = require('download-checksum')
 var Download  = require('download')
 var got       = require('got')
 var progress  = require('download-status')
@@ -108,6 +109,8 @@ function manager(downloads, options, callback)
     process.stdout.write('Downloading '+getNames(downloads)+'... ')
 
     var download = Download({ extract: true, strip: 1 })
+
+    download.use(checksum(downloads))
     if(!process.env.CI) download.use(progress())
 
     downloads.forEach(addUrl, download)

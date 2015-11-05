@@ -1,6 +1,6 @@
 {
   "name": "download-manager",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Download files and tarballs and process them later",
   "main": "index.js",
   "scripts": {
@@ -20,6 +20,7 @@
     "async": "^1.5.0",
     "diff": "^2.2.0",
     "download": "NodeOS/download",
+    "download-checksum": "0.0.0",
     "download-status": "^2.2.1",
     "got": "^5.0.0",
     "strip-dirs": "^1.1.1"
