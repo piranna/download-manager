@@ -1,6 +1,6 @@
 {
   "name": "download-manager",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Download files and tarballs and process them later",
   "main": "index.js",
   "scripts": {
@@ -18,11 +18,11 @@
   "homepage": "https://github.com/piranna/download-manager#readme",
   "dependencies": {
     "async": "^1.5.0",
-    "diff": "^2.2.0",
+    "diff": "^2.2.1",
     "download": "NodeOS/download",
-    "download-checksum": "0.0.0",
+    "download-checksum": "^0.1.3",
     "download-status": "^2.2.1",
-    "got": "^5.0.0",
+    "got": "^5.1.0",
     "strip-dirs": "^1.1.1"
   }
 }
