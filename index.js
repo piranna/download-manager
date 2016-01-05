@@ -11,6 +11,9 @@ var stripDirs = require('strip-dirs')
 var applyPatches = require('diff').applyPatches
 
 
+const CI = process.env.CI
+
+
 function getName(item)
 {
   return item.name
@@ -52,12 +55,12 @@ function manager(downloads, options, callback)
 
   function getAction(item)
   {
-    if(item.action)
+    var action = item.action
+    if(action)
     {
-      var action = item.action.bind(item)
+      action = action.bind(item)
       if(!item.patch) return action
     }
-
 
     return function(callback)
     {
@@ -90,7 +93,9 @@ function manager(downloads, options, callback)
           {
             if(error) return callback(error)
 
-            if(action) action.call(item, callback)
+            if(action) return action.call(item, callback)
+
+            callback()
           }
         })
       })
@@ -104,14 +109,14 @@ function manager(downloads, options, callback)
   },
   function(downloads)
   {
-    if(!downloads.length) return
+    if(!downloads.length) return callback()
 
     process.stdout.write('Downloading '+getNames(downloads)+'... ')
 
     var download = Download({ extract: true, strip: 1 })
 
     download.use(checksum(downloads))
-    if(!process.env.CI) download.use(progress())
+    if(!CI) download.use(progress())
 
     downloads.forEach(addUrl, download)
 
@@ -119,7 +124,7 @@ function manager(downloads, options, callback)
     {
       if(error) return callback(error)
 
-      if(process.env.CI) console.log('Done')
+      if(CI) console.log('Done')
 
       async.series(downloads.filter(hasAction).map(getAction),callback)
     })
