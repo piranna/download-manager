@@ -55,48 +55,55 @@ function manager(downloads, options, callback)
 
   function getAction(item)
   {
+    var patch = item.patch
+
     var action = item.action
     if(action)
     {
       action = action.bind(item)
-      if(!item.patch) return action
+      if(!patch) return action
+    }
+
+    var name  = item .name
+    var path  = patch.path  || item.path  || ''
+    var strip = patch.strip || item.strip || 0
+    var url   = patch.url   || patch
+
+    function loadFile(patch, callback)
+    {
+      var filename = stripDirs(patch.oldFileName, strip)
+      fs.readFile(join(deps, name, path, filename), 'utf8', callback)
+    }
+
+    function patched(patch, content)
+    {
+      if(content === false)
+        return console.error('Context sanity check failed:',patch)
+
+      var filename = stripDirs(patch.newFileName, strip)
+      fs.writeFile(join(deps, name, path, filename), content)
     }
 
     return function(callback)
     {
-      got(item.patch, function(error, patch)
+      function complete(error)
       {
         if(error) return callback(error)
 
-        var name  = item.name
-        var path  = item.path  || ''
-        var strip = item.strip || 0
+        if(action) return action.call(item, callback)
+
+        callback()
+      }
+
+      got(url, function(error, patch)
+      {
+        if(error) return callback(error)
 
         applyPatches(patch,
         {
-          loadFile: function(patch, callback)
-          {
-            var filename = stripDirs(patch.oldFileName, strip)
-            fs.readFile(join(deps, name, path, filename), 'utf8', callback)
-          },
-
-          patched: function(patch, content)
-          {
-            if(content === false)
-              return console.error('Context sanity check failed:',patch)
-
-            var filename = stripDirs(patch.newFileName, strip)
-            fs.writeFile(join(deps, name, path, filename), content)
-          },
-
-          complete: function(error)
-          {
-            if(error) return callback(error)
-
-            if(action) return action.call(item, callback)
-
-            callback()
-          }
+          loadFile: loadFile,
+          patched : patched,
+          complete: complete
         })
       })
     }
