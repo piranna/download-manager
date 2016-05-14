@@ -1,5 +1,5 @@
 var fs   = require('fs')
-var join = require('path').join
+var path = require('path')
 
 var async     = require('async')
 var checksum  = require('download-checksum')
@@ -50,7 +50,7 @@ function manager(downloads, options, callback)
 
   function addUrl(item)
   {
-    this.get(item.url, join(deps, item.name))
+    this.get(item.url, path.join(deps, item.name))
   }
 
   function getAction(item)
@@ -71,8 +71,11 @@ function manager(downloads, options, callback)
 
     function loadFile(patch, callback)
     {
-      var filename = stripDirs(patch.oldFileName, strip)
-      fs.readFile(join(deps, name, path, filename), 'utf8', callback)
+      const fileName = patch.oldFileName
+
+      if(!path.isAbsolute(fileName)) filename = stripDirs(oldFileName, strip)
+
+      fs.readFile(path.join(deps, name, path, filename), 'utf8', callback)
     }
 
     function patched(patch, content)
@@ -80,8 +83,11 @@ function manager(downloads, options, callback)
       if(content === false)
         return console.error('Context sanity check failed:',patch)
 
-      var filename = stripDirs(patch.newFileName, strip)
-      fs.writeFile(join(deps, name, path, filename), content)
+      const fileName = patch.newFileName
+
+      if(!path.isAbsolute(fileName)) filename = stripDirs(oldFileName, strip)
+
+      fs.writeFile(path.join(deps, name, path, filename), content)
     }
 
     return function(callback)
@@ -112,7 +118,7 @@ function manager(downloads, options, callback)
 
   async.reject(downloads, function(item, callback)
   {
-    fs.exists(join(deps, item.name), callback)
+    fs.exists(path.join(deps, item.name), callback)
   },
   function(downloads)
   {
