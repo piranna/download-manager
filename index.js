@@ -1,3 +1,5 @@
+'use strict'
+
 var fs   = require('fs')
 var path = require('path')
 
@@ -71,11 +73,12 @@ function manager(downloads, options, callback)
 
     function loadFile(patch, callback)
     {
-      const fileName = patch.oldFileName
+      var filename = patch.oldFileName
 
-      if(!path.isAbsolute(fileName)) filename = stripDirs(fileName, strip)
+      if(!path.isAbsolute(filename))
+        filename = path.join(deps, name, fpath, stripDirs(filename, strip))
 
-      fs.readFile(path.join(deps, name, fpath, filename), 'utf8', callback)
+      fs.readFile(filename, 'utf8', callback)
     }
 
     function patched(patch, content)
@@ -83,11 +86,12 @@ function manager(downloads, options, callback)
       if(content === false)
         return console.error('Context sanity check failed:',patch)
 
-      const fileName = patch.newFileName
+      var filename = patch.newFileName
 
-      if(!path.isAbsolute(fileName)) filename = stripDirs(fileName, strip)
+      if(!path.isAbsolute(filename))
+        filename = path.join(deps, name, fpath, stripDirs(filename, strip))
 
-      fs.writeFile(path.join(deps, name, fpath, filename), content)
+      fs.writeFile(filename, content)
     }
 
     return function(callback)
