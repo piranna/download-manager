@@ -65,7 +65,7 @@ function manager(downloads, options, callback)
     }
 
     var name  = item .name
-    var path  = patch.path  || item.path  || ''
+    var fpath = patch.path  || item.path  || ''
     var strip = patch.strip || item.strip || 0
     var url   = patch.url   || patch
 
@@ -75,7 +75,7 @@ function manager(downloads, options, callback)
 
       if(!path.isAbsolute(fileName)) filename = stripDirs(oldFileName, strip)
 
-      fs.readFile(path.join(deps, name, path, filename), 'utf8', callback)
+      fs.readFile(path.join(deps, name, fpath, filename), 'utf8', callback)
     }
 
     function patched(patch, content)
@@ -87,7 +87,7 @@ function manager(downloads, options, callback)
 
       if(!path.isAbsolute(fileName)) filename = stripDirs(oldFileName, strip)
 
-      fs.writeFile(path.join(deps, name, path, filename), content)
+      fs.writeFile(path.join(deps, name, fpath, filename), content)
     }
 
     return function(callback)
