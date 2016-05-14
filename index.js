@@ -73,7 +73,7 @@ function manager(downloads, options, callback)
     {
       const fileName = patch.oldFileName
 
-      if(!path.isAbsolute(fileName)) filename = stripDirs(oldFileName, strip)
+      if(!path.isAbsolute(fileName)) filename = stripDirs(fileName, strip)
 
       fs.readFile(path.join(deps, name, fpath, filename), 'utf8', callback)
     }
@@ -85,7 +85,7 @@ function manager(downloads, options, callback)
 
       const fileName = patch.newFileName
 
-      if(!path.isAbsolute(fileName)) filename = stripDirs(oldFileName, strip)
+      if(!path.isAbsolute(fileName)) filename = stripDirs(fileName, strip)
 
       fs.writeFile(path.join(deps, name, fpath, filename), content)
     }
