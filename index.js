@@ -1,7 +1,8 @@
 'use strict'
 
-var fs   = require('fs')
-var path = require('path')
+var fs    = require('fs')
+var parse = require('url').parse
+var path  = require('path')
 
 var async     = require('async')
 var checksum  = require('download-checksum')
@@ -31,6 +32,14 @@ function getNames(downloads)
   if(names.length) result += ' and '
 
   return result + last
+}
+
+function getPatch(url, callback)
+{
+  if(parse(url).host) return got(url, callback)
+
+  // Local file
+  fs.readFile(url, 'utf8', callback)
 }
 
 function hasAction(item)
@@ -105,7 +114,7 @@ function manager(downloads, options, callback)
         callback()
       }
 
-      got(url, function(error, patch)
+      getPatch(url, function(error, patch)
       {
         if(error) return callback(error)
 
