@@ -4,12 +4,13 @@ var fs    = require('fs')
 var parse = require('url').parse
 var path  = require('path')
 
-var async     = require('async')
-var checksum  = require('download-checksum')
-var Download  = require('download')
-var got       = require('got')
-var progress  = require('download-status')
-var stripDirs = require('strip-dirs')
+var async      = require('async')
+var checksum   = require('download-checksum')
+var Download   = require('download')
+var forceArray = require('force-array')
+var got        = require('got')
+var progress   = require('download-status')
+var stripDirs  = require('strip-dirs')
 
 var applyPatches = require('diff').applyPatches
 
@@ -66,65 +67,70 @@ function manager(downloads, options, callback)
 
   function getAction(item)
   {
-    var patch = item.patch
+    var patch = forceArray(item.patch)
 
     var action = item.action
     if(action)
     {
       action = action.bind(item)
-      if(!patch) return action
+      if(!patch.length) return action
     }
 
-    var name  = item .name
-    var fpath = patch.path  || item.path  || ''
-    var strip = patch.strip || item.strip || 0
-    var url   = patch.url   || patch
-
-    function loadFile(patch, callback)
-    {
-      var filename = patch.oldFileName
-
-      if(!path.isAbsolute(filename))
-        filename = path.join(deps, name, fpath, stripDirs(filename, strip))
-
-      fs.readFile(filename, 'utf8', callback)
-    }
-
-    function patched(patch, content)
-    {
-      if(content === false)
-        return console.error('Context sanity check failed:',patch)
-
-      var filename = patch.newFileName
-
-      if(!path.isAbsolute(filename))
-        filename = path.join(deps, name, fpath, stripDirs(filename, strip))
-
-      fs.writeFile(filename, content)
-    }
+    var name = item.name
 
     return function(callback)
     {
-      function complete(error)
+      async.eachSeries(patch, function(patch, callback)
       {
-        if(error) return callback(error)
+        var fpath = patch.path  || item.path  || ''
+        var strip = patch.strip || item.strip || 0
+        var url   = patch.url   || patch
 
-        if(action) return action.call(item, callback)
-
-        callback()
-      }
-
-      getPatch(url, function(error, patch)
-      {
-        if(error) return callback(error)
-
-        applyPatches(patch,
+        function loadFile(patch, callback)
         {
-          loadFile: loadFile,
-          patched : patched,
-          complete: complete
+          var filename = patch.oldFileName
+
+          if(!path.isAbsolute(filename))
+            filename = path.join(deps, name, fpath, stripDirs(filename, strip))
+
+          fs.readFile(filename, 'utf8', callback)
+        }
+
+        function patched(patch, content)
+        {
+          if(content === false)
+            return console.error('Context sanity check failed:',patch)
+
+          var filename = patch.newFileName
+
+          if(!path.isAbsolute(filename))
+            filename = path.join(deps, name, fpath, stripDirs(filename, strip))
+
+          fs.writeFile(filename, content)
+        }
+
+        function complete(error)
+        {
+          if(error) return callback(error)
+
+          if(action) return action.call(item, callback)
+
+          callback()
+        }
+
+        getPatch(url, function(error, patch)
+        {
+          if(error) return callback(error)
+
+          applyPatches(patch,
+          {
+            loadFile: loadFile,
+            patched : patched,
+            complete: complete
+          })
         })
-      })
+      },
+      callback)
     }
   }
 
