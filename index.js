@@ -1,5 +1,8 @@
-var fs   = require('fs')
-var join = require('path').join
+'use strict'
+
+var fs    = require('fs')
+var parse = require('url').parse
+var path  = require('path')
 
 var applyPatches  = require('diff').applyPatches
 var async         = require('async')
@@ -21,57 +24,70 @@ function noop(){}
 
 function getAction(item, deps)
 {
-  // Item has an action
+  var patch = forceArray(item.patch)
+
   var action = item.action
-  if(action) action = action.bind(item)
-
-  // No patch, return plain action (if any)
-  var patch = item.patch
-  if(!patch) return action
-
-  // Download and apply patch before exec action (if any)
-  var name  = item .name
-  var path  = patch.path  || item.path  || ''
-  var strip = patch.strip || item.strip || 0
-  var url   = patch.url   || patch
-
-  function loadFile(patch, callback)
+  if(action)
   {
-    var filename = stripDirs(patch.oldFileName, strip)
-    fs.readFile(join(deps, name, path, filename), 'utf8', callback)
+    action = action.bind(item)
+    if(!patch.length) return action
   }
 
-  function patched(patch, content)
-  {
-    if(content === false)
-      return console.error('Context sanity check failed:',patch)
-
-    var filename = stripDirs(patch.newFileName, strip)
-    fs.writeFile(join(deps, name, path, filename), content)
-  }
+  var name = item.name
 
   return function(callback)
   {
-    function complete(error)
+    async.eachSeries(patch, function(patch, callback)
     {
-      if(error) return callback(error)
+      var fpath = patch.path  || item.path  || ''
+      var strip = patch.strip || item.strip || 0
+      var url   = patch.url   || patch
 
-      if(action) return action(callback)
-
-      callback()
-    }
-
-    got(url, function(error, patch)
-    {
-      if(error) return callback(error)
-
-      applyPatches(patch,
+      function loadFile(patch, callback)
       {
-        loadFile: loadFile,
-        patched : patched,
-        complete: complete
+        var filename = patch.oldFileName
+
+        if(!path.isAbsolute(filename))
+          filename = path.join(deps, name, fpath, stripDirs(filename, strip))
+
+        fs.readFile(filename, 'utf8', callback)
+      }
+
+      function patched(patch, content)
+      {
+        if(content === false)
+          return console.error('Context sanity check failed:',patch)
+
+        var filename = patch.newFileName
+
+        if(!path.isAbsolute(filename))
+          filename = path.join(deps, name, fpath, stripDirs(filename, strip))
+
+        fs.writeFile(filename, content)
+      }
+
+      function complete(error)
+      {
+        if(error) return callback(error)
+
+        if(action) return action.call(item, callback)
+
+        callback()
+      }
+
+      getPatch(url, function(error, patch)
+      {
+        if(error) return callback(error)
+
+        applyPatches(patch,
+        {
+          loadFile: loadFile,
+          patched : patched,
+          complete: complete
+        })
       })
-    })
+    },
+    callback)
   }
 }
 
@@ -90,6 +106,14 @@ function getNames(downloads)
   if(names.length) result += ' and '
 
   return result + last
+}
+
+function getPatch(url, callback)
+{
+  if(parse(url).host) return got(url, callback)
+
+  // Local file
+  fs.readFile(url, 'utf8', callback)
 }
 
 
@@ -118,7 +142,7 @@ function manager(downloads, options, callback)
     .on('error', callback)
     .on('response', function(res)
     {
-      const path = join(deps, item.name)
+      const fpath = path.join(deps, item.name)
 
       var _error
 
@@ -133,7 +157,7 @@ function manager(downloads, options, callback)
         // self.abort()
         res.once('end', function()
         {
-          rimraf(path, callback || noop)
+          rimraf(fpath, callback || noop)
         })
       }
 
@@ -154,9 +178,9 @@ function manager(downloads, options, callback)
       //   })
       // }
 
-//      pump(res, gunzip(), extract(path, {strip: 1}), function(error)
+//      pump(res, gunzip(), extract(fpath, {strip: 1}), function(error)
       res.on('error', onError)
-      res.pipe(gunzip()).pipe(extract(path, {strip: 1}))
+      res.pipe(gunzip()).pipe(extract(fpath, {strip: 1}))
       .on('error', onError)
       .on('finish', callback)
       // .on('finish', function()
@@ -181,7 +205,7 @@ function manager(downloads, options, callback)
 
   // async.reject(downloads, function(item, callback)
   // {
-  //   fs.exists(join(deps, item.name), callback)
+  //   fs.exists(path.join(deps, item.name), callback)
   // },
   // function(downloads)
   // {
