@@ -4,6 +4,7 @@
   "description": "Download files and tarballs and process them later",
   "main": "index.js",
   "scripts": {
+    "coveralls": "easy-coveralls",
     "test": "mocha"
   },
   "repository": {
@@ -29,6 +30,7 @@
     "tar-fs": "^1.13.0"
   },
   "devDependencies": {
+    "easy-coveralls": "0.0.1",
     "mocha": "^3.0.2",
     "nock": "^8.0.0",
     "tmp": "0.0.28"
