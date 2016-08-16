@@ -1,19 +1,22 @@
 'use strict'
 
-var fs    = require('fs')
-var parse = require('url').parse
-var path  = require('path')
+const fs    = require('fs')
+const parse = require('url').parse
+const path  = require('path')
 
-var applyPatches  = require('diff').applyPatches
-var async         = require('async')
-var checksums     = require('download-checksum').checksums
-var extract       = require('tar-fs').extract
-var forceArray    = require('force-array');
-var got           = require('got')
-var gunzip        = require('gunzip-maybe')
-var Multiprogress = require('multi-progress')
-var rimraf        = require('rimraf')
-var stripDirs     = require('strip-dirs')
+const applyPatches  = require('diff').applyPatches
+const async         = require('async')
+const checksums     = require('download-checksum').checksums
+const extract       = require('tar-fs').extract
+const forceArray    = require('force-array');
+const got           = require('got')
+const gunzip        = require('gunzip-maybe')
+const Multiprogress = require('multi-progress')
+const pump          = require('pump')
+const rimraf        = require('rimraf')
+const stripDirs     = require('strip-dirs')
+
+const get = got.stream.get
 
 
 const CI = process.env.CI
@@ -91,11 +94,17 @@ function getAction(item, deps)
   }
 }
 
+/**
+ * Get the name of an `item`
+ */
 function getName(item)
 {
   return item.name
 }
 
+/**
+ * Get a pretty-printed human readable list of downloads names
+ */
 function getNames(downloads)
 {
   var names = downloads.map(getName)
@@ -108,6 +117,9 @@ function getNames(downloads)
   return result + last
 }
 
+/**
+ * Get a `patch` file both from local filesystem or as a download
+ */
 function getPatch(url, callback)
 {
   if(parse(url).host) return got(url, callback)
@@ -119,103 +131,97 @@ function getPatch(url, callback)
 
 function manager(downloads, options, callback)
 {
+  downloads = forceArray(downloads)
+
   if(options instanceof Function)
   {
     callback = options
-    options = {}
+    options = null
   }
-
-  downloads = forceArray(downloads)
+  options = options || {}
 
   var deps = options.path || '.'
 
+
   var errors = []
-  var transferred = 0
-  var length = 0
 
   var multi = Multiprogress()
 
 
   function download(item, callback)
   {
-    got.stream.get(item.url)
-    .on('error', callback)
-    .on('response', function(res)
+    const fpath = path.join(deps, item.name)
+
+    var _error
+
+    var req = get(item.url)
+
+    function onError(error, callback)
     {
-      const fpath = path.join(deps, item.name)
+      if(!error) return
 
-      var _error
+      _error = error
+      errors.push(error)
 
-      // var self = this
-      function onError(error, callback)
+      req.abort()
+      req.once('end', function()
       {
-        if(!error) return
+        rimraf(fpath, callback || noop)
+      })
+    }
 
-        _error = error
-        errors.push(error)
+    req.on('response', function(res)
+    {
+      checksums(res, item, onError)
 
-        // self.abort()
-        res.once('end', function()
+      const contentLength = res.headers['content-length']
+      if(!CI && contentLength != null)
+      {
+        var bar = multi.newBar(item.name+' [:bar] :percent :etas',
         {
-          rimraf(fpath, callback || noop)
+          incomplete: ' ',
+          width: 50,
+          total: parseInt(contentLength, 10)
+        })
+        res.on('data', function(chunk)
+        {
+          bar.tick(chunk.length)
         })
       }
+    })
 
-//      checksums(res, item, onError)
+    pump(req, gunzip(), extract(fpath, item), function(error)
+    {
+      if(error) return onError(error, callback)
 
-      // const contentLength = res.headers['content-length']
-      // if(!CI && contentLength != null)
-      // {
-      //   var bar = multi.newBar(item.name+' [:bar] :percent :etas',
-      //   {
-      //     incomplete: ' ',
-      //     width: 50,
-      //     total: parseInt(contentLength, 10)
-      //   })
-      //   res.on('data', function(chunk)
-      //   {
-      //     bar.tick(chunk.length)
-      //   })
-      // }
+      var action = getAction(item, deps)
 
-//      pump(res, gunzip(), extract(fpath, {strip: 1}), function(error)
-      res.on('error', onError)
-      res.pipe(gunzip()).pipe(extract(fpath, {strip: 1}))
-      .on('error', onError)
-      .on('finish', callback)
-      // .on('finish', function()
-      // {
-      //   var action = getAction(item, deps)
-      //
-      //   console.trace('action 1:',item, action, callback)
-      //   if(_error || !action) return callback()
-      //   console.log('action 2:')
-      //
-      //   action(function(error)
-      //   {
-      //     console.log('action 3:',error)
-      //     if(error) return onError(error, callback)
-      //
-      //     callback()
-      //   })
-      // })
+      if(_error || !action) return callback()
+
+      action(function(error)
+      {
+        if(error) return onError(error, callback)
+
+        callback()
+      })
     })
   }
 
 
-  // async.reject(downloads, function(item, callback)
-  // {
-  //   fs.exists(path.join(deps, item.name), callback)
-  // },
-  // function(downloads)
-  // {
+  async.reject(downloads, function(item, callback)
+  {
+    fs.exists(path.join(deps, item.name), callback)
+  },
+  function(error, downloads)
+  {
+    if(error) return callback(error)
+
     if(!downloads.length) return callback()
 
     process.stdout.write('Downloading '+getNames(downloads)+'... ')
 
     async.each(downloads, download, function(error)
     {
-      console.log('each:',error, errors)
       if(error) return callback(error)
 
       if(errors.length) return callback(errors)
@@ -224,7 +230,7 @@ function manager(downloads, options, callback)
 
       callback()
     })
-//  })
+  })
 }
 
 
