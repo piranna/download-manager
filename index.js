@@ -150,29 +150,28 @@ function manager(downloads, options, callback)
 
   function download(item, callback)
   {
-    const fpath = path.join(deps, item.name)
+    // [Hack] can't use closures for these variables due to a bug in `got`
+    // https://github.com/sindresorhus/got/issues/223
+    var req
+    var res
 
-    var _error
+    var checksum_error
 
-    var req = get(item.url)
-
-    function onError(error, callback)
+    var request = get(item.url)
+    .on('request', function(_req)
     {
-      if(!error) return
+      req = _req
+    })
+    .on('response', function(_res)
+    {
+      res = _res
 
-      _error = error
-      errors.push(error)
-
-      req.abort()
-      req.once('end', function()
+      checksums(res, item, function(error)
       {
-        rimraf(fpath, callback || noop)
-      })
-    }
+        if(!error) return
 
-    req.on('response', function(res)
-    {
-      checksums(res, item, onError)
+        checksum_error = error
+      })
 
       const contentLength = res.headers['content-length']
       if(!CI && contentLength != null)
@@ -190,17 +189,37 @@ function manager(downloads, options, callback)
       }
     })
 
-    pump(req, gunzip(), extract(fpath, item), function(error)
+    const fpath = path.join(deps, item.name)
+
+    function errorPurge(error, callback)
     {
-      if(error) return onError(error, callback)
+      errors.push(error)
+
+      rimraf(fpath, callback)
+    }
+
+    pump(request, gunzip(), extract(fpath, item), function(error)
+    {
+      if(error)
+      {
+        if(res.ended) return errorPurge(error, callback)
+
+        req.once('abort', function()
+        {
+          errorPurge(error, callback)
+        })
+
+        return req.abort()
+      }
+
+      if(checksum_error) return errorPurge(checksum_error, callback)
 
       var action = getAction(item, deps)
-
-      if(_error || !action) return callback()
+      if(!action) return callback()
 
       action(function(error)
       {
-        if(error) return onError(error, callback)
+        if(error) return errorPurge(error, callback)
 
         callback()
       })
