@@ -22,9 +22,6 @@ const get = got.stream.get
 const CI = process.env.CI
 
 
-function noop(){}
-
-
 function getAction(item, deps)
 {
   var patch = forceArray(item.patch)
@@ -38,60 +35,59 @@ function getAction(item, deps)
 
   var name = item.name
 
-  return function(callback)
+  function applyPatch(patch, callback)
   {
-    async.eachSeries(patch, function(patch, callback)
+    var fpath = patch.path  || item.path  || ''
+    var strip = patch.strip || item.strip || 0
+    var url   = patch.url   || patch
+
+    function loadFile(patch, callback)
     {
-      var fpath = patch.path  || item.path  || ''
-      var strip = patch.strip || item.strip || 0
-      var url   = patch.url   || patch
+      var filename = patch.oldFileName
 
-      function loadFile(patch, callback)
+      if(!path.isAbsolute(filename))
+        filename = path.join(deps, name, fpath, stripDirs(filename, strip))
+
+      fs.readFile(filename, 'utf8', callback)
+    }
+
+    function patched(patch, content)
+    {
+      if(content === false)
+        return console.error('Context sanity check failed:',patch)
+
+      var filename = patch.newFileName
+
+      if(!path.isAbsolute(filename))
+        filename = path.join(deps, name, fpath, stripDirs(filename, strip))
+
+      fs.writeFile(filename, content)
+    }
+
+    function complete(error)
+    {
+      if(error) return callback(error)
+
+      if(action) return action.call(item, callback)
+
+      callback()
+    }
+
+    getPatch(url, function(error, patch)
+    {
+      if(error) return callback(error)
+
+      applyPatches(patch,
       {
-        var filename = patch.oldFileName
-
-        if(!path.isAbsolute(filename))
-          filename = path.join(deps, name, fpath, stripDirs(filename, strip))
-
-        fs.readFile(filename, 'utf8', callback)
-      }
-
-      function patched(patch, content)
-      {
-        if(content === false)
-          return console.error('Context sanity check failed:',patch)
-
-        var filename = patch.newFileName
-
-        if(!path.isAbsolute(filename))
-          filename = path.join(deps, name, fpath, stripDirs(filename, strip))
-
-        fs.writeFile(filename, content)
-      }
-
-      function complete(error)
-      {
-        if(error) return callback(error)
-
-        if(action) return action.call(item, callback)
-
-        callback()
-      }
-
-      getPatch(url, function(error, patch)
-      {
-        if(error) return callback(error)
-
-        applyPatches(patch,
-        {
-          loadFile: loadFile,
-          patched : patched,
-          complete: complete
-        })
+        loadFile: loadFile,
+        patched : patched,
+        complete: complete
       })
-    },
-    callback)
+    })
   }
+
+
+  return async.eachSeries.bind(async, patch, applyPatch)
 }
 
 /**
