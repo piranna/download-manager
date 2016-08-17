@@ -21,12 +21,14 @@ const downloads =
   {
     name: 'a_dir',
     url: 'http://example.org/a.tar.gz',
-    sha256: A_SHA256
+    sha256: A_SHA256,
+    strip: 1
   },
   {
     name: 'b_dir',
     url: 'http://example.org/b.tar.gz',
-    sha256: B_SHA256
+    sha256: B_SHA256,
+    strip: 1
   }
 ]
 
