@@ -118,10 +118,15 @@ function getNames(downloads)
  */
 function getPatch(url, callback)
 {
-  if(parse(url).host) return got(url, callback)
-
   // Local file
-  fs.readFile(url, 'utf8', callback)
+  if(!parse(url).host) return fs.readFile(url, 'utf8', callback)
+
+  // Remote file
+  got(url).then(function(response)
+  {
+    callback(null, response.body)
+  },
+  callback)
 }
 
 
