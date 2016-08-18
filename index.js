@@ -228,9 +228,14 @@ function manager(downloads, options, callback)
   }
 
 
-  async.reject(downloads, function(item, callback)
+  async.filter(downloads, function(item, callback)
   {
-    fs.exists(path.join(deps, item.name), callback)
+    fs.stat(path.join(deps, item.name), function(err, stats)
+    {
+      if(err && err.code !== 'ENOENT') return callback(err)
+
+      callback(null, err)  // No error (falsy), or error is `ENOENT` (truish)
+    })
   },
   function(error, downloads)
   {
