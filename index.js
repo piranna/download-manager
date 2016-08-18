@@ -146,7 +146,7 @@ function manager(downloads, options, callback)
   var deps = options.path || '.'
 
 
-  var errors = []
+  var errors = {}
 
   var multi = Multiprogress()
 
@@ -192,11 +192,12 @@ function manager(downloads, options, callback)
       }
     })
 
-    const fpath = path.join(deps, item.name)
+    const name  = item.name
+    const fpath = path.join(deps, name)
 
     function errorPurge(error, callback)
     {
-      errors.push(error)
+      errors[name] = error
 
       rimraf(fpath, callback)
     }
@@ -261,11 +262,22 @@ function manager(downloads, options, callback)
     {
       if(error) return callback(error)
 
-      if(errors.length) return callback(errors)
+      const keys = Object.keys(errors)
+      switch(keys.length)
+      {
+        case 0:
+          if(CI) console.log('Done')
 
-      if(CI) console.log('Done')
+          callback()
+        break
 
-      callback()
+        case 1:
+          callback(errors[keys[0]])
+        break
+
+        default:
+          callback(errors)
+      }
     })
   })
 }
