@@ -18,6 +18,8 @@ const stripDirs     = require('strip-dirs')
 
 const get = got.stream.get
 
+require('string.prototype.padend').shim()
+
 
 const CI = process.env.CI
 
@@ -177,7 +179,7 @@ function manager(downloads, options, callback)
       const contentLength = res.headers['content-length']
       if(!CI && contentLength != null)
       {
-        var bar = multi.newBar(item.name+' [:bar] :percent :etas',
+        var bar = multi.newBar(item.namepadded+' [:bar] :percent :etas',
         {
           incomplete: ' ',
           width: 50,
@@ -243,8 +245,18 @@ function manager(downloads, options, callback)
 
     if(!downloads.length) return callback()
 
+    // Compute padded names
+    const length = downloads.map(getName)
+                   .sort(function(a, b){return b.length - a.length})[0].length
+
+    downloads.forEach(function(item)
+    {
+      item.namepadded = item.name.padEnd(length)
+    })
+
     process.stdout.write('Downloading '+getNames(downloads)+'... ')
 
+    // Start downloads
     async.each(downloads, download, function(error)
     {
       if(error) return callback(error)

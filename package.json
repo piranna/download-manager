@@ -27,6 +27,7 @@
     "multi-progress": "^2.0.0",
     "pump": "^1.0.1",
     "rimraf": "^2.5.4",
+    "string.prototype.padend": "^3.0.0",
     "strip-dirs": "^2.0.0",
     "tar-fs": "^1.13.0"
   },
