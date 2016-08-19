@@ -202,7 +202,7 @@ function manager(downloads, options, callback)
       rimraf(fpath, callback)
     }
 
-    pump(request, gunzip(), extract(fpath, item), function(error)
+    pump(request, gunzip(), extract(fpath, {strip: 1}), function(error)
     {
       if(error)
       {
