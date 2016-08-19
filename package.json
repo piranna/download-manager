@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "coveralls": "easy-coveralls",
+    "integration-test": "mocha test/integration",
     "test": "mocha"
   },
   "repository": {
