@@ -20,6 +20,7 @@
   "homepage": "https://github.com/piranna/download-manager#readme",
   "dependencies": {
     "async": "^2.0.1",
+    "bzip2-maybe": "^1.0.0",
     "diff": "^2.2.3",
     "download-checksum": "^0.3.0",
     "force-array": "^3.1.0",
