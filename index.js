@@ -6,12 +6,11 @@ const path  = require('path')
 
 const applyPatches  = require('diff').applyPatches
 const async         = require('async')
-const bzip2         = require('bzip2-maybe')
+const decompress    = require('decompress-maybe')
 const checksums     = require('download-checksum').checksums
 const extract       = require('tar-fs').extract
 const forceArray    = require('force-array');
 const got           = require('got')
-const gunzip        = require('gunzip-maybe')
 const Multiprogress = require('multi-progress')
 const pump          = require('pump')
 const rimraf        = require('rimraf')
@@ -203,7 +202,7 @@ function manager(downloads, options, callback)
       rimraf(fpath, callback)
     }
 
-    pump(request, gunzip(), bzip2(), extract(fpath, {strip: 1}), function(error)
+    pump(request, decompress(), extract(fpath, {strip: 1}), function(error)
     {
       if(error)
       {
