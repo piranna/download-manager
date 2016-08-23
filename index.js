@@ -53,17 +53,22 @@ function getAction(item, deps)
       fs.readFile(filename, 'utf8', callback)
     }
 
-    function patched(patch, content)
+    function patched(patch, content, callback)
     {
       if(content === false)
-        return console.error('Context sanity check failed:',patch)
+      {
+        let error = new TypeError('Context sanity check failed')
+            error.patch = patch
+
+        return callback(error)
+      }
 
       var filename = patch.newFileName
 
       if(!path.isAbsolute(filename))
         filename = path.join(deps, name, fpath, stripDirs(filename, strip))
 
-      fs.writeFile(filename, content)
+      fs.writeFile(filename, content, callback)
     }
 
     function complete(error)
