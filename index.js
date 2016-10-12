@@ -156,8 +156,14 @@ function manager(downloads, options, callback)
   var multi = Multiprogress()
 
 
-  function download(item, callback)
+  function download(item, bar, callback)
   {
+    if(bar instanceof Function)
+    {
+      callback = bar
+      bar = null
+    }
+
     // [Hack] can't use closures for these variables due to a bug in `got`
     // https://github.com/sindresorhus/got/issues/223
     var req
@@ -184,12 +190,16 @@ function manager(downloads, options, callback)
       const contentLength = res.headers['content-length']
       if(!CI && contentLength != null)
       {
-        var bar = multi.newBar(item.namepadded+' [:bar] :percent :etas',
-        {
-          incomplete: ' ',
-          width: 50,
-          total: parseInt(contentLength, 10)
-        })
+        if(bar)
+          bar.curr = 0
+        else
+          bar = multi.newBar(item.namepadded+' [:bar] :percent :etas',
+          {
+            incomplete: ' ',
+            width: 50,
+            total: parseInt(contentLength, 10)
+          })
+
         res.on('data', function(chunk)
         {
           bar.tick(chunk.length)
@@ -200,36 +210,51 @@ function manager(downloads, options, callback)
     const name  = item.name
     const fpath = path.join(deps, name)
 
-    function errorPurge(error, callback)
+    function errorPurge(err1)
     {
-      errors[name] = error
+      let prev_error = errors[name]
+      if(prev_error && prev_error != err1) return callback(err1)
 
-      rimraf(fpath, callback)
+      errors[name] = err1
+
+      rimraf(fpath, function(err2)
+      {
+        if(err2) return callback(err2)
+
+        // Error decompressing download, re-start it again
+        if(err1.errno === -5 && err1.code === 'Z_BUF_ERROR')
+          return download(item, bar, callback)
+
+        // Unknown download error, abort download and wait others to finish
+        callback()
+      })
     }
 
     pump(request, decompress(), extract(fpath, {strip: 1}), function(error)
     {
       if(error)
       {
-        if(res.ended) return errorPurge(error, callback)
+        if(res.ended) return errorPurge(error)
 
         req.once('abort', function()
         {
-          errorPurge(error, callback)
+          errorPurge(error)
         })
 
         return req.abort()
       }
 
-      if(checksum_error) return errorPurge(checksum_error, callback)
+      if(checksum_error) return errorPurge(checksum_error)
 
       var action = getAction(item, deps)
       if(!action) return callback()
 
       action(function(error)
       {
-        if(error) return errorPurge(error, callback)
+        if(error) return errorPurge(error)
 
+        // Download was sucessful, remove any previous error
+        delete errors[name]
         callback()
       })
     })
