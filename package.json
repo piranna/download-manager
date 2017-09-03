@@ -19,23 +19,23 @@
   },
   "homepage": "https://github.com/piranna/download-manager#readme",
   "dependencies": {
-    "async": "^2.1.1",
+    "async": "^2.5.0",
     "decompress-maybe": "^1.0.0",
     "diff": "^3.3.1",
     "download-checksum": "^0.3.0",
     "force-array": "^3.1.0",
-    "got": "^6.5.0",
+    "got": "^7.1.0",
     "multi-progress": "^2.0.0",
-    "pump": "^1.0.1",
-    "rimraf": "^2.5.4",
+    "pump": "^1.0.2",
+    "rimraf": "^2.6.1",
     "string.prototype.padend": "^3.0.0",
     "strip-dirs": "^2.0.0",
-    "tar-fs": "^1.13.2"
+    "tar-fs": "^1.15.3"
   },
   "devDependencies": {
-    "easy-coveralls": "0.0.1",
-    "mocha": "^3.1.2",
-    "nock": "^8.1.0",
-    "tmp": "0.0.29"
+    "easy-coveralls": "^0.0.1",
+    "mocha": "^3.5.0",
+    "nock": "^9.0.14",
+    "tmp": "^0.0.33"
   }
 }
