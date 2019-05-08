@@ -30,7 +30,7 @@
     "rimraf": "^2.6.1",
     "string.prototype.padend": "^3.0.0",
     "strip-dirs": "^2.0.0",
-    "tar-fs": "^1.15.3"
+    "tar-fs": "^1.16.2"
   },
   "devDependencies": {
     "easy-coveralls": "^0.0.1",
