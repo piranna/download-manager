@@ -6,7 +6,9 @@
   "scripts": {
     "coveralls": "easy-coveralls",
     "integration-test": "mocha test/integration",
-    "test": "mocha"
+    "test": "mocha",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
   },
   "repository": {
     "type": "git",
@@ -30,12 +32,14 @@
     "rimraf": "^2.6.1",
     "string.prototype.padend": "^3.0.0",
     "strip-dirs": "^2.0.0",
-    "tar-fs": "^1.15.3"
+    "tar-fs": "^1.15.3",
+    "snyk": "^1.319.1"
   },
   "devDependencies": {
     "easy-coveralls": "^0.0.1",
     "mocha": "^3.5.0",
     "nock": "^9.0.14",
     "tmp": "^0.0.33"
-  }
+  },
+  "snyk": true
 }
