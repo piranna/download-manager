@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/piranna/download-manager#readme",
   "dependencies": {
-    "async": "^2.5.0",
+    "async": "^3.2.2",
     "decompress-maybe": "^1.0.0",
     "diff": "^3.3.1",
     "download-checksum": "^0.3.0",
