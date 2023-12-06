@@ -27,7 +27,7 @@
     "got": "^7.1.0",
     "multi-progress": "^2.0.0",
     "pump": "^1.0.2",
-    "rimraf": "^2.6.1",
+    "rimraf": "^4.0.0",
     "string.prototype.padend": "^3.0.0",
     "strip-dirs": "^2.0.0",
     "tar-fs": "^1.15.3"
